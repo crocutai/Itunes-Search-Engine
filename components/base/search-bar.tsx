@@ -1,15 +1,21 @@
 "use client";
-import { ITunesSearchAPI, ItunesSearchAPIResponse } from "@/classes/ITunes";
+import { ITunesSearchAPI, ItunesSearchAPIResponse, ItunesSearchAPIResult } from "@/classes/ITunes";
 import { InputGroup, InputGroupAddon, InputGroupInput } from "@/components/ui/input-group";
 import { Item, ItemContent, ItemDescription, ItemGroup, ItemMedia, ItemTitle } from "@/components/ui/item";
 import { SearchIcon } from "lucide-react";
 import { useCallback, useMemo, useState } from "react";
 import { ToggleGroup, ToggleGroupItem } from "../ui/toggle-group";
+import { cn } from "@/lib/utils";
 
 export default function SearchBar() {
-    const [filterBy, setFilterBy] = useState<String | null>("SongName");
+    const [filterBy, setFilterBy] = useState<string>("SongName");
     const [searchResult, setSearchResult] = useState<ItunesSearchAPIResponse | null>(null);
-    const songlist = useMemo(() => {
+
+    /**
+     * Song List Memoized
+     * @return Sorted Song List based on Song Name or Album Name
+     */
+    const songlist: ItunesSearchAPIResult[] = useMemo(() => {
         if (!searchResult) return [];
         if (filterBy === "SongName") {
             return searchResult.results.toSorted((a, b) => 
@@ -23,6 +29,12 @@ export default function SearchBar() {
         return searchResult.results;
     }, [searchResult, filterBy]);
 
+    /**
+     * Handle Search on Input Change
+     * searching should be performed after user adding/removing a letter in the input field
+     * @param query Search Query
+     * @return void
+     */
     const onSearch = useCallback(async (query: string) => {
         ITunesSearchAPI.search(query)
             .then(response => setSearchResult(response))
@@ -32,7 +44,7 @@ export default function SearchBar() {
     }, []);
 
     return (
-        <>
+        <form className="flex w-full h-full flex-col items-center gap-2">
             <InputGroup>
                 <InputGroupInput placeholder="Search..." onChange={event => onSearch(event.target.value)} />
                 <InputGroupAddon>
@@ -41,12 +53,12 @@ export default function SearchBar() {
                 {searchResult?.resultCount ? <InputGroupAddon align="inline-end">{searchResult.resultCount} results</InputGroupAddon> : null}
             </InputGroup>
 
-            <ToggleGroup type="multiple" spacing={2}>
+            <ToggleGroup type="single" spacing={2} value={filterBy} onValueChange={value => setFilterBy(value || filterBy)}>
                 <ToggleGroupItem value="">Filter By: </ToggleGroupItem>
-                <ToggleGroupItem variant={filterBy=== "SongName" ? "outline" : "default"} className="cursor-pointer data-[state=on]:bg-transparent data-[state=on]:*:[svg]:fill-yellow-500 data-[state=on]:*:[svg]:stroke-yellow-500" value="SongName" onClick={()=> setFilterBy("SongName")}>
+                <ToggleGroupItem variant="default" className={`cursor-pointer ${cn("data-[state=on]:bg-black data-[state=on]:text-white")}`} value="SongName" onClick={()=> setFilterBy("SongName")}>
                     Song
                 </ToggleGroupItem>
-                <ToggleGroupItem variant={filterBy=== "AlbumName" ? "outline" : "default"} className="cursor-pointer" value="AlbumName" onClick={()=> setFilterBy("AlbumName")}>
+                <ToggleGroupItem variant="default" className={`cursor-pointer ${cn("data-[state=on]:bg-black data-[state=on]:text-white")}`} value="AlbumName" onClick={()=> setFilterBy("AlbumName")}>
                     Album
                 </ToggleGroupItem>
             </ToggleGroup>
@@ -62,12 +74,12 @@ export default function SearchBar() {
                                 <ItemTitle className="line-clamp-1">
                                     {result.trackName}
                                 </ItemTitle>
-                                <ItemDescription>{result.collectionName}</ItemDescription>
+                                <ItemDescription><b>Album: </b>{result.collectionName}</ItemDescription>
                             </ItemContent>
                         </a>
                     </Item>
                 ))}
             </ItemGroup>
-        </>
+        </form>
     );
 }
